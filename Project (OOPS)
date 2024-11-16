@@ -1,0 +1,300 @@
+#include <iostream>
+#include <vector>
+#include <string>
+#include <memory> // For smart pointers
+
+using namespace std;
+
+// Base Class: Vehicle
+class Vehicle {
+protected:
+    int id;
+    string brand;
+    string model;
+    double price;
+
+public:
+    Vehicle(int id, string brand, string model, double price)
+        : id(id), brand(brand), model(model), price(price) {}
+
+    virtual void display() const {
+        cout << "ID: " << id << ", Brand: " << brand 
+             << ", Model: " << model << ", Price: $" << price;
+    }
+
+    string getBrand() const { return brand; }
+    string getModel() const { return model; }
+};
+
+// Derived Class: Car
+class Car : public Vehicle {
+private:
+    string carType; // e.g., Sedan, SUV
+
+public:
+    Car(int id, string brand, string model, double price, string carType)
+        : Vehicle(id, brand, model, price), carType(carType) {}
+
+    void display() const override {
+        cout << "[Car] ";
+        Vehicle::display();
+        cout << ", Type: " << carType << endl;
+    }
+};
+
+// Derived Class: Bike
+class Bike : public Vehicle {
+private:
+    string bikeType; // e.g., Sports, Cruiser
+
+public:
+    Bike(int id, string brand, string model, double price, string bikeType)
+        : Vehicle(id, brand, model, price), bikeType(bikeType) {}
+
+    void display() const override {
+        cout << "[Bike] ";
+        Vehicle::display();
+        cout << ", Type: " << bikeType << endl;
+    }
+};
+
+// Class: Customer
+class Customer {
+private:
+    int customerId;
+    string name;
+    string phone;
+
+public:
+    Customer(int customerId, string name, string phone)
+        : customerId(customerId), name(name), phone(phone) {}
+
+    void display() const {
+        cout << "Customer ID: " << customerId 
+             << ", Name: " << name 
+             << ", Phone: " << phone << endl;
+    }
+
+    int getCustomerId() const { return customerId; }
+};
+
+// Class: Sale
+class Sale {
+private:
+    int saleId;
+    Customer customer;
+    shared_ptr<Vehicle> vehicle;
+    string date;
+
+public:
+    Sale(int saleId, Customer customer, shared_ptr<Vehicle> vehicle, string date)
+        : saleId(saleId), customer(customer), vehicle(vehicle), date(date) {}
+
+    void display() const {
+        cout << "Sale ID: " << saleId << ", Date: " << date << endl;
+        cout << "Customer Details: ";
+        customer.display();
+        cout << "Vehicle Details: ";
+        vehicle->display();
+        cout << "-----------------------------------" << endl;
+    }
+};
+
+// Class: Showroom
+class Showroom {
+private:
+    vector<shared_ptr<Vehicle>> vehicles;
+    vector<Customer> customers;
+    vector<Sale> sales;
+    int nextVehicleId = 1;
+    int nextCustomerId = 1;
+    int nextSaleId = 1;
+
+public:
+    // Add a new Car
+    void addCar(string brand, string model, double price, string carType) {
+        vehicles.push_back(make_shared<Car>(nextVehicleId++, brand, model, price, carType));
+        cout << "Car added successfully.\n";
+    }
+
+    // Add a new Bike
+    void addBike(string brand, string model, double price, string bikeType) {
+        vehicles.push_back(make_shared<Bike>(nextVehicleId++, brand, model, price, bikeType));
+        cout << "Bike added successfully.\n";
+    }
+
+    // Display all Vehicles
+    void displayVehicles() const {
+        if (vehicles.empty()) {
+            cout << "No vehicles available.\n";
+            return;
+        }
+        for (const auto& vehicle : vehicles) {
+            vehicle->display();
+        }
+    }
+
+    // Add a new Customer
+    void addCustomer(string name, string phone) {
+        customers.emplace_back(nextCustomerId++, name, phone);
+        cout << "Customer added successfully.\n";
+    }
+
+    // Display all Customers
+    void displayCustomers() const {
+        if (customers.empty()) {
+            cout << "No customers available.\n";
+            return;
+        }
+        for (const auto& customer : customers) {
+            customer.display();
+        }
+    }
+
+    // Make a Sale
+    void makeSale(int customerId, int vehicleId, string date) {
+        // Find customer
+        auto customerIt = find_if(customers.begin(), customers.end(),
+                                  [customerId](const Customer& c) { return c.getCustomerId() == customerId; });
+        if (customerIt == customers.end()) {
+            cout << "Customer not found.\n";
+            return;
+        }
+
+        // Find vehicle
+        auto vehicleIt = find_if(vehicles.begin(), vehicles.end(),
+                                 [vehicleId](const shared_ptr<Vehicle>& v) { return v->id == vehicleId; });
+        if (vehicleIt == vehicles.end()) {
+            cout << "Vehicle not found.\n";
+            return;
+        }
+
+        // Record the sale
+        sales.emplace_back(nextSaleId++, *customerIt, *vehicleIt, date);
+        cout << "Sale recorded successfully.\n";
+    }
+
+    // Display all Sales
+    void displaySales() const {
+        if (sales.empty()) {
+            cout << "No sales recorded.\n";
+            return;
+        }
+        for (const auto& sale : sales) {
+            sale.display();
+        }
+    }
+
+    // Search Vehicles by Brand or Model
+    void searchVehicles(string keyword) const {
+        bool found = false;
+        for (const auto& vehicle : vehicles) {
+            if (vehicle->getBrand() == keyword || vehicle->getModel() == keyword) {
+                vehicle->display();
+                found = true;
+            }
+        }
+        if (!found) {
+            cout << "No vehicles matched your search.\n";
+        }
+    }
+};
+
+// Function to display the main menu
+void displayMenu() {
+    cout << "\n=== Vehicle Showroom Management ===\n";
+    cout << "1. Add Car\n";
+    cout << "2. Add Bike\n";
+    cout << "3. Display All Vehicles\n";
+    cout << "4. Add Customer\n";
+    cout << "5. Display All Customers\n";
+    cout << "6. Make a Sale\n";
+    cout << "7. Display All Sales\n";
+    cout << "8. Search Vehicles\n";
+    cout << "9. Exit\n";
+    cout << "Enter your choice: ";
+}
+
+int main() {
+    Showroom showroom;
+    int choice;
+
+    while (true) {
+        displayMenu();
+        cin >> choice;
+        cin.ignore(); // To ignore the newline character after the choice input
+
+        if (choice == 1) {
+            string brand, model, carType;
+            double price;
+            cout << "Enter Brand: ";
+            getline(cin, brand);
+            cout << "Enter Model: ";
+            getline(cin, model);
+            cout << "Enter Price: ";
+            cin >> price;
+            cin.ignore();
+            cout << "Enter Car Type (e.g., Sedan, SUV): ";
+            getline(cin, carType);
+            showroom.addCar(brand, model, price, carType);
+        }
+        else if (choice == 2) {
+            string brand, model, bikeType;
+            double price;
+            cout << "Enter Brand: ";
+            getline(cin, brand);
+            cout << "Enter Model: ";
+            getline(cin, model);
+            cout << "Enter Price: ";
+            cin >> price;
+            cin.ignore();
+            cout << "Enter Bike Type (e.g., Sports, Cruiser): ";
+            getline(cin, bikeType);
+            showroom.addBike(brand, model, price, bikeType);
+        }
+        else if (choice == 3) {
+            showroom.displayVehicles();
+        }
+        else if (choice == 4) {
+            string name, phone;
+            cout << "Enter Customer Name: ";
+            getline(cin, name);
+            cout << "Enter Customer Phone: ";
+            getline(cin, phone);
+            showroom.addCustomer(name, phone);
+        }
+        else if (choice == 5) {
+            showroom.displayCustomers();
+        }
+        else if (choice == 6) {
+            int customerId, vehicleId;
+            string date;
+            cout << "Enter Customer ID: ";
+            cin >> customerId;
+            cout << "Enter Vehicle ID: ";
+            cin >> vehicleId;
+            cin.ignore();
+            cout << "Enter Sale Date (e.g., YYYY-MM-DD): ";
+            getline(cin, date);
+            showroom.makeSale(customerId, vehicleId, date);
+        }
+        else if (choice == 7) {
+            showroom.displaySales();
+        }
+        else if (choice == 8) {
+            string keyword;
+            cout << "Enter Brand or Model to search: ";
+            getline(cin, keyword);
+            showroom.searchVehicles(keyword);
+        }
+        else if (choice == 9) {
+            cout << "Exiting the program. Goodbye!\n";
+            break;
+        }
+        else {
+            cout << "Invalid choice. Please try again.\n";
+        }
+    }
+
+    return 0;
+}
